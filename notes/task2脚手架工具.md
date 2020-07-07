@@ -38,7 +38,13 @@ IDE 创建项目的过程就是一个脚手架的工作流程 (例如：Android 
 
 Yeoman 作为最老牌，最强大，最通用的一款脚手架工具，他有更多值得我们借鉴学习的地方
 
+Yeoman 优点：
+
+- Yeoman 可以搭配不同的 generator 去创建任何类型的项目，也就是说我们可以通过创建自己的 generator 从而去定制属于我们的自己前端脚手架，如下图所示
+
 ![avatar](../images/Yeoman01.png)
+
+Yeoman 缺点：在很多专注框架开发的人眼中 Yeoman 过于通用不够专注所以他们更喜欢使用像 vue-cli 这种的脚手架
 
 Yeoman 基本使用
 
@@ -58,11 +64,14 @@ npm install generator-node --global # or  yarn global add generator-node
 
 ```js
 cd path/to/project-dir
-mkdir my-module
-yo node
+mkdir lyk-my-module
+yo node   // node_12以上不支持该命令了outgoingMessage._headers, outgoingMessage._headerNames
 ```
 
-### 2.2.1.1 Yeoman Sub Generator
+### 2.2.1.1 Yeoman 的 Sub Generator
+在已有项目基础上创建一些特殊类型的文件
+
+使用 generator-node 提供的一个子集生成器叫 cli的生成器去帮我们生成一个叫 cli 应用所需要的文件，让我们这个模块变成 cli 应用
 
 常规使用步骤
 
