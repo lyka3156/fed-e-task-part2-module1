@@ -67,26 +67,36 @@ cd path/to/project-dir
 mkdir lyk-my-module
 yo node   // node_12以上不支持该命令了outgoingMessage._headers, outgoingMessage._headerNames
 ```
+![avatar](../images/yo-node命令行创建项目.png)
+
 
 ### 2.2.1.1 Yeoman 的 Sub Generator
 在已有项目基础上创建一些特殊类型的文件
 
 使用 generator-node 提供的一个子集生成器叫 cli的生成器去帮我们生成一个叫 cli 应用所需要的文件，让我们这个模块变成 cli 应用
 
-常规使用步骤
+``` js
+// 在上一个my-module项目中运行如下命令创建generator的子集
+yo node:cli
+// 使用 yarn link 将这个模块作为全局的命令行模块去运行了
+yarn link 
+```
+需要注意的是并不是每个generator都提供子集,通过generator官方文档来去明确这个generator下面有没有子集的生成器  (例如：[generator-node的子集](https://github.com/yeoman/generator-node))
+
+### 2.2.1.2 Yeoman 常规使用步骤
 
 1. 明确你的需求；
-2. 找到合适的 Generator;
-3. 全局范围安装找到的 Generator;
-4. 通过 Yo 运行对应的 Generator;
-5. 通过命令行交互填写选项;
+2. 找到合适的 Generator;            generator-node
+3. 全局范围安装找到的 Generator;    yarn global add generator-node
+4. 通过 Yo 运行对应的 Generator;    yo node
+5. 通过命令行交互填写选项;          
 6. 生成你所需要的项目结构；
 
-### 2.2.1.2 自定义 Generator
+### 2.2.1.3 自定义 Generator
 
 基于 Yeoman 搭建自己的脚手架
 
-创建 Generator 模块
+### 2.2.1.4 创建 Generator 模块
 Generator 本质上是一个 NPM 模块
 
 Generator 基本结构
