@@ -230,13 +230,70 @@ yarn add yeoman-generator
 // 6. 在index.js文件中把templates目录的所有文件全部写到生成器生成的文件中
 const Generator = require("yeoman-generator");
 module.exports = class extends Generator {
-  //   writing生命周期 Yeoman 自动在生成文件阶段调用此方法
+
+  // 接受用户输入时调用此方法
+  prompting() {
+    return this.prompt([
+      {
+        type: "input",
+        name: "name",
+        message: "Your project name",
+        default: this.appname, // appname就是项目名称
+      },
+    ]).then((answers) => {
+      // 保存用户输入的信息
+      this.inputObj = answers;
+    });
+  }
+
+   // 在生成文件阶段调用此方法
   writing() {
-    // 在这里尝试在项目目录中写入文件
-    this.fs.write(this.destinationPath("1.txt"), Math.random().toString());
+    // 把每一个文件都通过模板转换到目标路径
+    const templates = [
+      "note.md",
+      "tsconfig.json",
+      "webpack.config.js",
+      "yarn.lock",
+      ".gitignore",
+      "package.json",
+      "src/index.html",
+      "src/index.tsx",
+      "src/components/Counter/index.tsx",
+      "src/components/TodoList/index.tsx",
+      "src/store/action-types.tsx",
+      "src/store/history.tsx",
+      "src/store/index.tsx",
+      "src/store/actions/counter.tsx",
+      "src/store/actions/todoList.tsx",
+      "src/store/reducers/index.tsx",
+      "src/store/reducers/counter.tsx",
+      "src/store/reducers/todoList.tsx",
+      "src/store/types/index.tsx",
+      "src/store/types/counter.tsx",
+      "src/store/types/todoList.tsx",
+    ];
+
+    templates.forEach((item) => {
+      // item => 每个文件路径
+      //   console.log(item);
+      this.fs.copyTpl(
+        this.templatePath(item),
+        this.destinationPath(item),
+        this.inputObj
+      );
+    });
   }
 };
+
+// 7. yarn link 把这个模块链接到全局范围使之成为全局模块包，这样yo就能找到我们些的generator-sample(我们自己写的generator包)了
+
+// 6. 创建一个目录 test-generator-react-typescript-template 用来测试我们自己写的 generator(generator-react-typescript-template)
+// 在命令行中运行  yo sample就可以运行react-typescript-template 就会生成我们react项目的基本结构了  (也就是上面的react-typescript-template的目录结构)
+
+// 7. 注意：如果生成的项目目录有 <%= name %> ejs模板方式 需要改成 <%%= name %>
 ```
+
+#### 2.2.1.4.4 发布 Generator 模块
 
 ### 2.2.2 Plop
 
