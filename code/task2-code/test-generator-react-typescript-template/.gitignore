@@ -1,0 +1,8 @@
+node_modules
+dist
+*.log
+.dea
+.DS_Store
+dll
+.vscode
+.idea
