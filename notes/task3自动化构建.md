@@ -566,10 +566,49 @@ exports.default = () => {
 - gulp 提供的插件都是转换流可以通过 pipe 管道传递流
 
 Gulp 自动化构建案例
+- 前期安装插件
+``` js
+yarn add gulp -D    // gulp核心插件
+yarn add gulp-load-plugins -D   // 自动加载所有的 gulp 插件中的任务
+```
 
 - 样式文件编译任务
+``` js
+// 1. 安装插件
+yarn add gulp-sass -D
+// 2. 编写编译样式文件的任务
+// 加载css的任务
+const style = () => {
+    return src('src/assets/styles/*.scss', { base: 'src' })
+        .pipe(plugins.sass({ outputStyle: 'expanded' }))
+        .pipe(dest('dist'));
+}
+```
+
 - 脚本文件编译任务
+``` js
+// 1. 安装插件
+yarn add gulp-babel -D    
+yarn add @babel/core @babel/preset-env @babel/plugin-proposal-class-properties -D
+// 2. 编译js脚本的任务
+const script = () => {
+    return src("src/assets/scripts/*.js", { base: "src" })
+        .pipe(plugins.babel({ presets: ["@babel/preset-env"], plugins: ["@babel/plugin-proposal-class-properties"] }))  // webpack的babel配置
+        .pipe(dest("dist"));
+}
+
+```
 - 页面文件编译任务
+``` js
+// 1. 安装插件
+yarn add gulp-swig -D   // swig 一个简单的，强大的，可扩展的JavaScript模板引擎。
+yarn add bootstrap jquery popper.js // 辅助index.html页面布局的插件
+
+// 2. 编译html模板引擎
+const page = () => src('src/*.html', { base: 'src' })
+    .pipe(plugins.swig({ data, defaults: { cache: false } })) // 防止模板缓存导致页面不能及时更新
+    .pipe(dest('dist'))
+```
 - 图片和字体文件的转换
 - 其他文件及文件清除
 - 自动加载插件
