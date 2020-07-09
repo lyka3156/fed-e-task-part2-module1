@@ -541,7 +541,29 @@ exports.default = () => {
 文件操作 API + 插件的使用
 
 ```js
+// 1. 安装需要的模块
+yarn add gulp -D          // gulp模块
+yarn add gulp-clean-css -D  // 压缩css的gulp插件    (都是转换流)
+yarn add gulp-rename -D   // 文件重命名的gulp插件   (都是转换流)
+
+// 2. 创建 gulpfile.js 文件 配置gulp
+// 3. 使用 gulp 对文件操作的API + 插件的使用
+const { src, dest } = require("gulp");
+const cleanCss = require("gulp-clean-css"); // 压缩css的插件
+const rename = require("gulp-rename"); // 文件重命名
+
+exports.default = () => {
+  return src("src/*.css") // 读取流
+    .pipe(cleanCss()) // 压缩css
+    .pipe(rename({ extname: ".min.css" })) // 修改文件后缀名
+    .pipe(dest("dist")); // 输入流
+};
 ```
+
+综上所得：
+
+- gulp 提供了对文件操的 API src(读取流) dest(写入流)
+- gulp 提供的插件都是转换流可以通过 pipe 管道传递流
 
 Gulp 自动化构建案例
 
