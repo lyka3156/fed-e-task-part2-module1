@@ -1,7 +1,7 @@
 // 导出的函数就是一个任务
 // gulp 中的任务都是异步任务
 
-const { src, dest, watch, series, parallel } = require("gulp");
+const { src, dest, watch } = require("gulp");
 
 const dataConfig = require("./data.config.js"); // 引入数据
 
@@ -120,38 +120,14 @@ const useref = () =>
     )
     .pipe(dest(buildPath));
 
-// 并行编译css,js,html的任务
-const compile = parallel(style, script, page);
-
-// 配置开发环境     (串行任务)
-// 1. 把css,js,html编译成浏览器支持的语法
-// 2. 开启静态服务器运行项目
-const dev = series(clean, compile, server);
-
-// 配置生产环境     (串行任务执行)
-// 1. 先把之前打包的目录删除
-// 2. 并行处理以下任务
-// 2.1 把css,js,html编译成浏览器支持的语法，然后合并html中引入的资源，以及压缩css,js,html    这个是并行的任务
-// 2.2 将图片和字体压缩一下放到打包目录
-// 2.3 把静态资源拷贝到打包目录
-const build = series(
-  clean,
-  parallel(series(compile, useref), image, font, extra)
-);
-
 module.exports = {
-  dev,
-  build,
+  clean,
+  style,
+  script,
+  page,
+  image,
+  font,
+  extra,
+  server,
+  useref,
 };
-
-// module.exports = {
-//   clean,
-//   style,
-//   script,
-//   page,
-//   image,
-//   font,
-//   extra,
-//   server,
-//   useref,
-// };
