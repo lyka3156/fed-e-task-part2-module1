@@ -946,25 +946,326 @@ module.exports = {
 }
 ```
 
+[gulp构建项目](https://blog.csdn.net/guang_s/article/details/84673204)
+
+- 使用watch实现按需刷新
+``` js
+// 样式编译的任务
+const style = doneOrFileName => {
+  console.log("styleFileName", doneOrFileName);
+  // fileName默认是done函数就编译"src/assets/styles/*.scss"，如果是字符串就代表watch监听的莫个文件("src/assets/styles/index.scss")改变了,按需更新
+  let fileName = typeof (doneOrFileName) === "string" ? doneOrFileName : "src/assets/styles/*.scss";
+  return src(fileName, { base: "src" })
+    .pipe(plugins.sass({ outputStyle: "expanded" })) // webpack的sass配置
+    .pipe(dest(serverPath))
+    .pipe(bs.reload({ stream: true })); // bs以流的形式重新加载一下
+}
+
+
+// 脚本编译的任务
+const script = doneOrFileName => {
+  console.log("scriptFileName", doneOrFileName);
+  // fileName默认是done函数就编译"src/assets/scripts/*.js"，如果是字符串就代表watch监听的莫个文件(src/assets/scripts/main.js)改变了,按需更新
+  let fileName = typeof (doneOrFileName) === "string" ? doneOrFileName : "src/assets/scripts/*.js";
+  return src(fileName, { base: "src" })
+    .pipe(
+      plugins.babel({
+        presets: ["@babel/preset-env"],
+        plugins: ["@babel/plugin-proposal-class-properties"],
+      })
+    ) // webpack的babel配置
+    .pipe(dest(serverPath))
+    .pipe(bs.reload({ stream: true })); // bs以流的形式重新加载一下
+}
+
+
+// 页面模板的编译的任务
+const page = doneOrFileName => {
+  console.log("pageFileName", doneOrFileName);
+  // fileName默认是done函数就编译"src/*.html"，如果是字符串就代表watch监听的莫个文件(src\index.html)改变了,按需更新
+  let fileName = typeof (doneOrFileName) === "string" ? doneOrFileName : "src/*.html";
+  return src(fileName, { base: "src" })
+    .pipe(plugins.swig({ data: dataConfig.data, defaults: { cache: false } })) // 防止模板缓存导致页面不能及时更新
+    .pipe(dest(serverPath))
+    .pipe(bs.reload({ stream: true })); // bs以流的形式重新加载一下
+}
+
+// 热更新开发服务器的任务
+const server = () => {
+  // 2. 监听指定的文件变化，变化之后找对应的任务重新编译生成最新的文件，并且对应的任务需要bs.reload重新加载一下，不然看不到效果
+  // watch("src/assets/styles/*.scss").on("change", (fileName) => style(fileName));     // 使用次方式会造成scss内部引入的样式文件改变不会触发。
+  watch("src/assets/styles/*.scss", style);
+  watch("src/assets/scripts/*.js").on("change", (fileName) => script(fileName));
+  watch("src/*.html").on("change", (fileName) => page(fileName));
+
+  // 图片和字体以及静态资源就不需要重新执行对应的任务了
+  // 因为他们仅仅只是拷贝过去和压缩，没有对其进行特殊的操作，所以不需要执行对应的任务，只需要bs.reload一下就可以了
+  // 开发环境可以使用src的资源
+  // 生产环境，执行一下对应的任务，然后使用dist打包之后的资源
+  watch(
+    ["src/assets/images/**", "src/assets/fonts/**", "public/**"],
+    bs.reload
+  );
+
+  // 初始化服务器的配置
+  bs.init({
+    port: 2080,
+    open: false, // 是否打开浏览器
+    server: {
+      // 以哪个目录为静态服务器的目录   (从左往右依次查找资源)
+      // dist   打包之后的目录  (上线的代码)
+      // src    源代码目录      (开发的代码)
+      // public 静态资源目录    (开发上线都需要的代码)
+      baseDir: [serverPath, "src", "public"], // 开发环境的时候使用temp目录的js,css,html
+      // 路由映射   为了解决打包后的文件引用不到node_modules中的模块 (/node_modules/bootstrap/dist/css/bootstrap.css)
+      routes: {
+        "/node_modules": "node_modules",
+      },
+    },
+  });
+};
+```
+综上所得：是通过watch监听change方法来知道到底是哪个文件改变了，然后触发任务只编译改变的文件。
+
 - 补充
 
-封装自动化构建工作流
+封装自动化构建工作流   gulpfile复用的问题
+![avatar](/images/封装自动化构建流01.png)
 
-![avatar](../images/封装自动化构建流01.png)
-
-![avatar](../images/封装自动化构建流01.png)
+![avatar](/images/封装自动化构建流01.png)
 
 - 提取 Gulpfile 到模块
-- 解决模块中的问题
-- 抽象路劲配置
-- 包装 Gulp CLI
-- 发布并使用模块
-- 总结
+``` js
+// 目标 (提取一个可复用的自动化构建工作流) 创建一个模块，然后把这个模块发布到npm仓库上，最后在我们的项目中使用这个模块
+// 1. 创建github项目  lyk-gulp-pages
+// 2. 常见本地项目，并且推送到github远程仓库
+// 2.1 安装全局脚手架   zce-cli是老师的脚手架
+yarn global add zce-cli
+zce init nm lyk-gulp-pages[项目名]  
+// 2.2 将项目推送到github上
+git init
+git remote add origin https://github.com/lyka3156/lyk-gulp-pages.git
+git status
+git add .
+git commit -m "feat: init"
+git push -u origin master
+// 3. 将gulp-build-demo创建的自动化构建流提取到lyk-gulp-pages项目中,在这个项目中我们去封装好这个工作流，把一些需要解决的问题都解决掉，这样我们就可以在多个项目中使用这个工作流了。
+// 3.1 将gulp-build-demo中的gulpfile.js入口文件放到lyk-gulp-pages中的lib中的index.js文件中
+// 3.2 将gulp-build-demo中的开发依赖模块拿过来做为lyk-gulp-pages的生产依赖 （***）
+// 为什么不是放到开发依赖了。 因为你去安装lyk-gulp-pages这个模块，他会自动帮你安装生产依赖，不会安装开发依赖，开发依赖指的是你在开发我们这个模块需要安装的东西。
+// 3.3 yarn 安装lyk-gulp-pages项目中的模块
+// 4. 我们将gulp-build-demo中的gulpfile.js中的内容删掉,package.json中的开发依赖删掉，node_modules也删掉, 删完之后就是一个干净的项目
+// 5. 使用lyk-gulp-pages去提供自动化构建的工作流
+// 5.1 我们在lyk-gulp-pages模块还没完成需要本地调试，使用yarn link的方式link到全局中
+yarn link
+// 5.2 在gulp-build-demo中的yarn link的方式把lyk-gulp-pages项目拿过来放到node_modules中
+yarn link "lyk-gulp-pages"
+// 5.3 将lyk-gulp-pages导出的gulpfile.js作为当前gulpfile.js的入口文件
+// gulp-build-deom的gulpfile.js
+module.exports = require("lyk-gulp-pages"); 
+// 5.4 在gulp-buld-demo中安装自己的依赖
+yarn
+// 5.5 这样我们gulp-buld-demo项目就可以跑了
+yarn build  // 会提示没有gulp命令，需要安装gulp去执行,    （***）
+// 在后续真正发布的时候就不会有这个问题了，因为你发布出去之后我们去安装lyk-gulp-pages模块的时候它会自动去安装gulp这个模块,gulp就会出现在node_modules中，所以就不会报错了。
+yarn add gulp -D
+```
 
-## 3.3 FIS
+- 解决模块中的问题
+``` js
+// 6. 抽取lyk-gulp-pages的公共配置
+// 6.1 将lyk-gulp-pages中gulpfile.js中的data数据抽离成data.config.js引入进来
+const path = require("path");
+const cwd = process.cwd();
+let dataConfig = {
+  // defualt config
+};
+try {
+  const loadConfig = require(path.join(cwd, "data.config.js"));
+  dataConfig = { ...dataConfig, ...loadConfig };
+} catch{
+}
+// 7. 将lyk-gulp-pages中引入的模块使用require方式引入
+const script = doneOrFileName => {
+  let fileName = typeof (doneOrFileName) === "string" ? doneOrFileName : "src/assets/scripts/*.js";
+  return src(fileName, { base: "src" })
+    .pipe(
+      plugins.babel({
+        presets: [require("@babel/preset-env")],  // 不使用字符串
+        plugins: [require("@babel/plugin-proposal-class-properties")],  // 不使用字符串
+      })
+    )
+    .pipe(dest(serverPath))
+    .pipe(bs.reload({ stream: true }));
+}
+// 使用require会从当前目录开始往上找，使用字符串它会直接从node_modules下找
+// 8. 再使用yarn build就可以打包目录了  这样我们gulpfile提取就ok了
+```
+
+
+- 抽象路劲配置
+``` js
+// 9. 在lyk-gulp-pages中把src,temp,dist，抽象成配置
+// 9.1 lyk-gulp-pages
+let dataConfig = {
+  // defualt config
+  build: {
+    src: "src",
+    dist: "dist",
+    temp: "temp",
+    public: "public",
+    paths: {
+      styles: "assets/styles/*.scss",
+      scripts: "assets/styles/*.js",
+      pages: "*.html",
+      images: "assets/images/**",
+      fonts: "assets/fonts/**"
+    }
+  }
+};
+// 9.2 在gulp-build-demo中添加配置
+module.exports = {
+   // 可以在这里自定义自己的目录配置
+  build: {
+    src: "src",
+    dist: "dist",     
+    temp: ".temp",   
+    public: "public",
+    paths: {
+      styles: "assets/styles/*.scss",
+      scripts: "assets/styles/*.js",
+      pages: "*.html",
+      images: "assets/images/**",
+      fonts: "assets/fonts/**"
+    }
+  },
+  data: {...}
+}
+```
+
+- 包装 Gulp CLI
+``` js
+// 1. 创建cls的入口文件
+mkdir bin/lyk-gulp-pages.js
+// 2. 在pageage.json添加bin的配置
+"bin": "bin/lyk-gulp-pages.js",
+// 3. 在lyk-gulp-pages.js编写cls命令的脚本
+#!/usr/bin/env node
+
+// 1. 将工作目录设置为当前工作目录
+process.argv.push("--cwd")
+process.argv.push(process.cwd())
+
+// 2. 将gulpfile.js文件的目录设置为gulpfile.js的入口目录(lib/index.js)
+process.argv.push("--gulpfile")
+// require.resolve("..") 找的是package.json的main(lib/index.js)
+process.argv.push(require.resolve(".."))
+
+
+console.log(process.argv);
+// [
+//     'C:\\Program Files\\nodejs\\node.exe',
+//     'C:\\Users\\Administrator\\AppData\\Roaming\\npm\\node_modules\\lyk-gulp-pages\\bin\\lyk-gulp-pages.js',
+//     'dev',
+//     '--cwd',
+//     'E:\\react-lgjy\\fed-e-task-part2-module1\\code\\task3-code\\gulp-build-demo',
+//     '--gulpfile',
+//     'E:\\react-lgjy\\fed-e-task-part2-module1\\code\\task3-code\\lyk-gulp-pages\\lib\\index.js'
+// ]
+
+// 3. 执行gulp命令
+// 相当于执行 yarn gulp
+require("gulp/bin/gulp")
+
+// 4. 在gulp-build-demo 中使用 cli就行了
+
+lyk-gulp-pages build
+// 5. 通过上面3和4所得
+lyk-gulp-pages build 对应 => yarn gulp build --gulpfile E:\\react-lgjy\\fed-e-task-part2-module1\\code\\task3-code\\lyk-gulp-pages\\lib\\index.js' --cwd E:\\react-lgjy\\fed-e-task-part2-module1\\code\\task3-code\\gulp-build-demo
+
+```
+- 发布并使用模块   [npm常用命令](https://www.cnblogs.com/leinov/p/9658110.html)
+``` js
+// 1. 在package.json中在加工bin目录发布上去
+{
+  "files": [
+    "lib",
+    "bin"
+  ],
+}
+// 2. 先通过git提交到远程仓库
+// 3. 通过 yarn publish发布到模块
+yarn publish --registry https:registry.yarnpkg.com
+// 4. 使用lyk-gulp-pages
+// 4.1 新建目录 test-lyk-gulp-pages， 并且将之前gulp-build-demo的src和public和data.config.js(基础目录)拷贝过来
+mkdir test-lyk-gulp-pages
+// 4.2 安装 lyk-gulp-pages
+yarn add lyk-gulp-pages -D
+// 4.3 如果安装不了就去https://developer.aliyun.com/mirror/npm/package/lyk-gulp-pages 将你的模块 SYNC下
+// 4.4 直接启动项目
+// 先在package.json 配置运行脚本，和生产依赖
+"scripts": {
+    "dev": "lyk-gulp-pages dev",
+    "build": "lyk-gulp-pages build"
+},
+"dependencies": {
+    "bootstrap": "^4.5.0",
+    "jquery": "^3.5.1",
+    "popper.js": "^1.16.1"
+}
+yarn add
+yarn dev  // 启动开发服务器
+yarn build  // 打包项目
+```
+- 总结
+``` js
+// 通过 lyk-gulp-pages cli运行的时候会找到 lyk-gulp-pages里面的bin的index.js文件
+// 在bin的index.js文件目的就是告诉 gulp cli 这次通过gulp工作流去工作的时候他的工作目录就是当前命令行所在的目录(test-lyk-gulp-pages),紧接着指定gulpfile的所在路劲，gulpfile的路劲指定为lib/index.js路劲出现。紧接着他引入gulp/bin/gulp会自动去执行gulp cli 前面两个参数相当于替手工传入了 gulp cli, 而gulp cli 就会把 gulpfile.js工作起来了。
+
+```
+[最后可以参考随行老师的gulp cli](https://github.com/zce/x-pages)   (*****)
+
+## 3.3 FIS   
+百度推出的构建系统
+
+特点：
+- 高度集成
+- 有些内置的任务
 
 基本使用
-
-高度集成
+``` js
+// 1. 安装fis
+yarn add fis3 -D
+// 2. 内置的构建任务
+yarn fis3 release -d output
+// 3. 创建fis-conf.js
+// 配置
+// fis.match 为匹配到的文件添加一些配置
+fis.match("*.{js,scss,png}", {
+    release: "/assets/$0"       // 当前文件的输入目录
+})
+```
 
 编译与压缩
+``` js
+// 1. 安装插件
+// 1.1 编译的插件
+yarn add fis-parser-node-sass -D
+yarn add fis-parser-babel-6.x -D
+// 1.2 压缩的插件 fis内置的
+// 1.3 可以看到转换后的文件
+yarn fis inspect 
+
+// 1.4 编写代码
+// 编译scss文件
+fis.match('**/*.scss', {
+    rExt: '.css',       // 修改扩展名
+    parser: fis.plugin('node-sass'),        // 使用此插件编译scss
+    // optimizer: fis.plugin('clean-css')      // 使用此插件压缩css     fis内置的
+})
+
+fis.match('**/*.js', {
+    parser: fis.plugin('babel-6.x'),        // 使用babel编译js
+    // optimizer: fis.plugin('uglify-js')      // 使用此插件压缩js      fis内置的
+})
+```

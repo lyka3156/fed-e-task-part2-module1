@@ -20,15 +20,23 @@ const buildPath = "dist"; // 打包之后的目录         打包发布的时候
 const clean = () => del([serverPath, buildPath]);
 
 // 样式编译的任务
-const style = () =>
-  src("src/assets/styles/*.scss", { base: "src" })
+const style = doneOrFileName => {
+  console.log("styleFileName", doneOrFileName);
+  // fileName默认是done函数就编译"src/assets/styles/*.scss"，如果是字符串就代表watch监听的莫个文件("src/assets/styles/index.scss")改变了,按需更新
+  let fileName = typeof (doneOrFileName) === "string" ? doneOrFileName : "src/assets/styles/*.scss";
+  return src(fileName, { base: "src" })
     .pipe(plugins.sass({ outputStyle: "expanded" })) // webpack的sass配置
     .pipe(dest(serverPath))
     .pipe(bs.reload({ stream: true })); // bs以流的形式重新加载一下
+}
+
 
 // 脚本编译的任务
-const script = () =>
-  src("src/assets/scripts/*.js", { base: "src" })
+const script = doneOrFileName => {
+  console.log("scriptFileName", doneOrFileName);
+  // fileName默认是done函数就编译"src/assets/scripts/*.js"，如果是字符串就代表watch监听的莫个文件(src/assets/scripts/main.js)改变了,按需更新
+  let fileName = typeof (doneOrFileName) === "string" ? doneOrFileName : "src/assets/scripts/*.js";
+  return src(fileName, { base: "src" })
     .pipe(
       plugins.babel({
         presets: ["@babel/preset-env"],
@@ -37,13 +45,19 @@ const script = () =>
     ) // webpack的babel配置
     .pipe(dest(serverPath))
     .pipe(bs.reload({ stream: true })); // bs以流的形式重新加载一下
+}
+
 
 // 页面模板的编译的任务
-const page = () =>
-  src("src/*.html", { base: "src" })
+const page = doneOrFileName => {
+  console.log("pageFileName", doneOrFileName);
+  // fileName默认是done函数就编译"src/*.html"，如果是字符串就代表watch监听的莫个文件(src\index.html)改变了,按需更新
+  let fileName = typeof (doneOrFileName) === "string" ? doneOrFileName : "src/*.html";
+  return src(fileName, { base: "src" })
     .pipe(plugins.swig({ data: dataConfig.data, defaults: { cache: false } })) // 防止模板缓存导致页面不能及时更新
     .pipe(dest(serverPath))
     .pipe(bs.reload({ stream: true })); // bs以流的形式重新加载一下
+}
 
 // 图片编译的任务
 const image = () =>
@@ -63,9 +77,10 @@ const extra = () => src("public/**", { base: "public" }).pipe(dest(buildPath));
 // 热更新开发服务器的任务
 const server = () => {
   // 2. 监听指定的文件变化，变化之后找对应的任务重新编译生成最新的文件，并且对应的任务需要bs.reload重新加载一下，不然看不到效果
+  // watch("src/assets/styles/*.scss").on("change", (fileName) => style(fileName));     // 使用次方式会造成scss内部引入的样式文件改变不会触发。
   watch("src/assets/styles/*.scss", style);
-  watch("src/assets/scripts/*.js", script);
-  watch("src/*.html", page);
+  watch("src/assets/scripts/*.js").on("change", (fileName) => script(fileName));
+  watch("src/*.html").on("change", (fileName) => page(fileName));
 
   // 图片和字体以及静态资源就不需要重新执行对应的任务了
   // 因为他们仅仅只是拷贝过去和压缩，没有对其进行特殊的操作，所以不需要执行对应的任务，只需要bs.reload一下就可以了
