@@ -1030,9 +1030,10 @@ const server = () => {
 - 补充
 
 封装自动化构建工作流   gulpfile复用的问题
-![avatar](/images/封装自动化构建流01.png)
 
-![avatar](/images/封装自动化构建流01.png)
+![avatar](./images/封装自动化构建流01.png)
+
+![avatar](./images/封装自动化构建流01.png)
 
 - 提取 Gulpfile 到模块
 ``` js
