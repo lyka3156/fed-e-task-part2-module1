@@ -495,11 +495,11 @@ exports.async = async () => {
 
 构建过程核心工作原理
 
-![avatar](../images/构建过程核心工作原理.png)
+![avatar](resource/images/构建过程核心工作原理.png)
 
 流式构建系统
 
-![avatar](../images/构建过程核心工作原理02.png)
+![avatar](resource/images/构建过程核心工作原理02.png)
 
 ```js
 // 3. gulp 构建过程
@@ -1031,9 +1031,9 @@ const server = () => {
 
 封装自动化构建工作流   gulpfile复用的问题
 
-![avatar](./images/封装自动化构建流01.png)
+![avatar](../images/封装自动化构建流01.png)
 
-![avatar](./images/封装自动化构建流01.png)
+![avatar](../images/封装自动化构建流01.png)
 
 - 提取 Gulpfile 到模块
 ``` js
